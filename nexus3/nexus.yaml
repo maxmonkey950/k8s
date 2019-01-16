@@ -1,0 +1,105 @@
+##创建PV
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+ name: nexus3-pv
+ labels:
+   pv: nexus3-pv
+
+spec:
+ capacity:
+   storage: 10Gi
+ accessModes:
+   - ReadWriteMany
+ persistentVolumeReclaimPolicy: Retain
+ flexVolume:
+  driver: "alicloud/nas"
+  options:
+     server: "2838f483dc-mgl74.cn-shenzhen.nas.aliyuncs.com"
+     path: "/nexus3"
+     vers: "4.0"
+
+##创建pvc
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+ name: nexus3-pvc
+spec:
+ accessModes:
+   - ReadWriteMany
+ resources:
+   requests:
+     storage: 10Gi
+ selector:
+   matchLabels:
+     pv: nexus3-pv
+
+
+
+## nexus3
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: nexus3
+ labels:
+   name: nexus3
+spec:
+ replicas: 1
+ selector:
+    matchLabels:
+        name: nexus3
+ template:
+   metadata:
+     labels: 
+      name: nexus3
+   spec:
+     initContainers:
+     - name: permissionsfix
+       image: alpine:latest
+       command: ["/bin/sh", "-c"]
+       args:
+       - chown 200:200 /nexus-data
+       volumeMounts:
+       - name: nexus3-home
+         mountPath: /nexus-data
+     containers:
+     - name: nexus3
+       image: sonatype/nexus3:3.14.0
+       volumeMounts:
+       - mountPath: /nexus-data
+         name: nexus3-home
+       - mountPath: /etc/localtime
+         name: host-time
+       ports:
+       - containerPort: 8081
+       
+     volumes:
+     - name: nexus3-home
+       persistentVolumeClaim:
+         claimName: nexus3-pvc
+     - name: host-time
+       hostPath:
+          path: /etc/localtime
+     
+
+##创建Service
+---
+apiVersion: v1
+kind: Service
+metadata:
+ name: nexus3
+ labels: 
+  name: nexus3
+spec:
+ type: NodePort
+ ports:
+ - port: 8081
+   protocol: TCP
+   targetPort: 8081
+   name: http
+   nodePort: 32764
+ selector:
+   name: nexus3
