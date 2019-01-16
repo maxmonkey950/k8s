@@ -1,5 +1,4 @@
 # README
-## please README
 ## This is my k8s config!
 ### auther hxx
 - 2019.1.16 add the rocketmq config for k8s. 
