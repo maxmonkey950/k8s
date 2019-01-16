@@ -15,5 +15,35 @@
 
 ```kubectl apply -f rocketmq4-3-2.yaml```
 
-if you want use the special port, you need configure "rocketmq4-3-2.yaml" with svc.
+if you want use the special port, you need configure "rocketmq4-3-2.yaml" with svc like this.
+```
+## svc
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: rocketmq
+  name: rocketmq
+  namespace: default
+  selfLink: /api/v1/namespaces/default/services/rocketmq
+spec:
+  externalTrafficPolicy: Cluster
+  ports:
+  - nodePort: 31700
+    name: tcp31700
+    port: 9876
+    protocol: TCP
+    targetPort: 9876
+  - port: 20911
+    name: tcp20911
+    protocol: TCP
+    targetPort: 20911
+    nodePort: 20911
+  selector:
+    app: rocketmq
+  sessionAffinity: None
+  type: NodePort
+status:
+  loadBalancer: {}
+```
 
